@@ -316,14 +316,14 @@ export default function MeetingNotesPage() {
       <header className="border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-8">
           <Link href="/" className="text-2xl font-extrabold tracking-wider text-slate-800">
-            Dev<span className="text-sky-600">Sync</span>
+            WeAre<span className="text-sky-600">Team</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-500">
             <Link href="/" className="hover:text-slate-800 transition">대시보드</Link>
             <Link href="/kanban" className="hover:text-slate-800 transition">칸반 보드</Link>
             <Link href="/notes" className="text-sky-600 font-bold">회의록</Link>
             <Link href="/gantt" className="hover:text-slate-800 transition">간트 차트</Link>
-            {session?.user.email === "admin@devsync.com" && (
+            {session?.user.email === "admin@weareteam.com" && (
               <Link href="/admin" className="hover:text-slate-800 transition">승인 관리</Link>
             )}
           </nav>

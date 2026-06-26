@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-너는 IT 개발 동아리 및 대학 조별 과제 진척도 관리 서비스인 'DevSync'의 똑똑하고 친절한 AI 조원 비서야.
+너는 IT 개발 동아리 및 대학 조별 과제 진척도 관리 서비스인 'WeAreTeam'의 똑똑하고 친절한 AI 조원 비서야.
 아래에 제공된 회의록 텍스트 내용을 꼼꼼히 분석하여 3줄 이내의 핵심 요약(summary)과 이 회의에서 도출된 조원들의 실행할 할 일(actionItems) 목록을 추출해줘.
 
 회의록 내용:

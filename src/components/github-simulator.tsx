@@ -25,7 +25,7 @@ export function GithubSimulator({ cards, onSuccess }: GithubSimulatorProps) {
     setSelectedCardId(cardId);
     if (cardId) {
       // 25자리 카드 CUID를 커밋 메시지 포맷에 맞추어 자동으로 자동완성해 줍니다 (사용자 편의).
-      setCommitMessage(`[DevSync-${cardId}] 로그인 기능 버그 수정 및 연동 완료! fix`);
+      setCommitMessage(`[WeAreTeam-${cardId}] 로그인 기능 버그 수정 및 연동 완료! fix`);
     } else {
       setCommitMessage("");
     }
@@ -144,7 +144,7 @@ export function GithubSimulator({ cards, onSuccess }: GithubSimulatorProps) {
                 <label className="text-[10px] text-[#8B949E] font-semibold">커밋 메시지 (카드 ID 포함)</label>
                 <textarea
                   rows={2}
-                  placeholder="예: [DevSync-카드ID] 에러 수정완료"
+                  placeholder="예: [WeAreTeam-카드ID] 에러 수정완료"
                   value={commitMessage}
                   onChange={(e) => setCommitMessage(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-[#0B0F19] border border-[#30363D] rounded-xl text-white focus:outline-none focus:border-sky-500 font-mono leading-relaxed"

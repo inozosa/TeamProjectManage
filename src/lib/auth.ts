@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       id: "credentials",
-      name: "DevSync Account",
+      name: "WeAreTeam Account",
       credentials: {
         loginId: { label: "아이디", type: "text" },
         password: { label: "비밀번호", type: "password" },
@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           // 깃허브 API 연동 로그인 시 이메일을 기준으로 아바타를 대조하던 기존 레이아웃 호환성을 위해,
-          // admin 계정은 email 값으로 "admin@devsync.com"을 들려보내 헤더의 관리자 탭 활성화에 씁니다.
+          // admin 계정은 email 값으로 "admin@weareteam.com"을 들려보내 헤더의 관리자 탭 활성화에 씁니다.
           email: user.email,
           image: user.image,
           role: user.role,

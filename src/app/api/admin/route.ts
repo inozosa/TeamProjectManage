@@ -10,7 +10,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     
     // 비로그인이거나 아이디가 'admin'이 아닌 경우 접속을 차단(403 Forbidden)합니다.
-    if (!session || !session.user || session.user.email !== "admin@devsync.com") {
+    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
       return NextResponse.json({ error: "관리자만 접근할 수 있는 API입니다." }, { status: 403 });
     }
 
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   try {
     // 1. 관리자 권한 검증
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.email !== "admin@devsync.com") {
+    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
       return NextResponse.json({ error: "수행 권한이 없습니다." }, { status: 403 });
     }
 
@@ -87,7 +87,7 @@ export async function DELETE(req: Request) {
   try {
     // 1. 관리자 권한 검증
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.email !== "admin@devsync.com") {
+    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
       return NextResponse.json({ error: "수행 권한이 없습니다." }, { status: 403 });
     }
 

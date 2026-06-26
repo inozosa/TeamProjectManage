@@ -40,7 +40,7 @@ export function LoginContent() {
       {/* 로고 */}
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 mb-2">
-          Dev<span className="text-sky-600">Sync</span>
+          WeAre<span className="text-sky-600">Team</span>
         </h1>
         <p className="text-xs text-slate-500">
           IT 개발 동아리 및 조별 과제 진척도 관리 서비스

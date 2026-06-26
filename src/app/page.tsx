@@ -60,7 +60,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-8">
           {/* 사이트 타이틀 */}
           <Link href="/" className="text-2xl font-extrabold tracking-wider text-slate-800">
-            Dev<span className="text-sky-600">Sync</span>
+            WeAre<span className="text-sky-600">Team</span>
           </Link>
           {/* 주요 화면 이동 메뉴 */}
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-500">
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             <Link href="/gantt" className="hover:text-slate-800 transition duration-150">
               간트 차트
             </Link>
-            {session.user.email === "admin@devsync.com" && (
+            {session.user.email === "admin@weareteam.com" && (
               <Link href="/admin" className="hover:text-slate-800 transition duration-150">
                 승인 관리
               </Link>

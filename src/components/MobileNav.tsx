@@ -26,7 +26,7 @@ export default function MobileNav() {
   // 사용자의 권한이 OWNER(조장)인지 확인합니다.
   const isOwner = session.user.role === "OWNER";
   // 이메일이 어드민 계정인지 확인합니다.
-  const isAdmin = session.user.email === "admin@devsync.com";
+  const isAdmin = session.user.email === "admin@weareteam.com";
 
   // 현재 메뉴가 선택되었는지 여부를 확인하는 판별기
   const isActive = (path: string) => {

@@ -30,7 +30,7 @@ async function main() {
       loginId: "admin",
       password: hashPassword("admin"),
       name: "관리자 (조장)",
-      email: "admin@devsync.com",
+      email: "admin@weareteam.com",
       image: "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
       role: "OWNER",
       isApproved: true, // 관리자는 즉시 승인 상태
@@ -43,7 +43,7 @@ async function main() {
       loginId: "seoyeon",
       password: hashPassword("seoyeon"),
       name: "이서연 (조원)",
-      email: "seoyeon@devsync.com",
+      email: "seoyeon@weareteam.com",
       image: "https://api.dicebear.com/7.x/bottts/svg?seed=seoyeon",
       role: "MEMBER",
       isApproved: true, // 승인 상태로 세팅
@@ -56,7 +56,7 @@ async function main() {
       loginId: "minwoo",
       password: hashPassword("minwoo"),
       name: "박민우 (멘토/교수님)",
-      email: "minwoo@devsync.com",
+      email: "minwoo@weareteam.com",
       image: "https://api.dicebear.com/7.x/bottts/svg?seed=minwoo",
       role: "VIEWER",
       isApproved: true, // 승인 상태로 세팅
@@ -69,7 +69,7 @@ async function main() {
       loginId: "waiting",
       password: hashPassword("waiting"),
       name: "장태호 (승인대기 조원)",
-      email: "waiting@devsync.com",
+      email: "waiting@weareteam.com",
       image: "https://api.dicebear.com/7.x/bottts/svg?seed=waiting",
       role: "MEMBER",
       isApproved: false, // 🚨 승인 대기 상태 (로그인 불가 상태)
@@ -148,7 +148,7 @@ async function main() {
   // 5. 회의록 생성
   await prisma.meetingNote.create({
     data: {
-      title: "DevSync 로그인 개편 및 관리자 승인제 도입 긴급 회의록",
+      title: "WeAreTeam 로그인 개편 및 관리자 승인제 도입 긴급 회의록",
       content: `## 📅 회의 일시
 2026-06-26 10:00 (진행: 관리자 조장)
 

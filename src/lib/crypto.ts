@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 // 암호화 시 소금(Salt)을 치듯 평문 비밀번호에 소량의 무작위 단어를 섞어
 // 해커가 원본 비밀번호를 추정하기 어렵게 만드는 '소금(Salt)' 키입니다.
-const SALT = "devsync_security_salt_key_2026";
+const SALT = "weareteam_security_salt_key_2026";
 
 // 1. 평문 비밀번호를 받아 돌려받을 수 없는 일방향 해시 값으로 짓이겨 변환하는 함수
 export function hashPassword(password: string): string {

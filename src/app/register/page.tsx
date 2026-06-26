@@ -69,7 +69,7 @@ export default function RegisterPage() {
         
         {/* 타이틀 및 헤더 */}
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">DevSync 회원가입 신청</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">WeAreTeam 회원가입 신청</h2>
           <p className="text-xs text-slate-500">
             정보 입력 후 관리자가 승인하면 즉시 로그인이 가능합니다.
           </p>

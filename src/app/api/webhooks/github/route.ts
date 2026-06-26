@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     // 카드 고유 CUID 매칭용 정규식 선언
     // 예: 커밋 메시지에 "[clx123...]" 또는 "[DevSync-clx123...]" 형태가 포함되어 있으면 해당 25자리 카드 ID를 추출합니다.
-    const cardIdRegex = /\[(?:DevSync-)?([a-z0-9]{25})\]/i;
+    const cardIdRegex = /\[(?:WeAreTeam-|DevSync-)?([a-z0-9]{25})\]/i;
     
     // 완료/해결을 암시하는 깃허브 표준 연동 단어 정규식 (대소문자 무관 및 한글 키워드 포함)
     const finishKeywords = /(?:fix|resolve|close|done|완료|해결)/i;

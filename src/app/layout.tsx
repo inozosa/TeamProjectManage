@@ -12,7 +12,7 @@ const inter = Inter({
 
 // SEO 및 웹 브라우저 탭에 표시될 메타데이터 정보들을 정의합니다.
 export const metadata: Metadata = {
-  title: "DevSync - IT 개발 진척도 관리 및 협업 서비스",
+  title: "WeAreTeam - IT 개발 진척도 관리 및 협업 서비스",
   description: "조별 과제 및 IT 동아리 프로젝트를 위한 직관적인 칸반 보드, 깃허브 코드 연동, 블로커 경보 지원 도구",
 };
 
