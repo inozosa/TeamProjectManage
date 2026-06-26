@@ -341,9 +341,22 @@ export default function MeetingNotesPage() {
         </div>
         
         <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-500 hidden sm:inline">
-            현재 역할: <strong className="text-slate-800">{userRole === "OWNER" ? "조장" : userRole === "MEMBER" ? "조원" : "구경꾼"}</strong>
-          </span>
+          <div className="flex items-center gap-2.5">
+            {session?.user?.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt="User Profile"
+                className="w-8 h-8 rounded-full border border-slate-200 bg-slate-100"
+              />
+            )}
+            <div className="text-left hidden sm:block">
+              <div className="text-sm font-extrabold text-slate-800">{session?.user?.name}</div>
+              <div className="text-xs text-sky-600 font-bold mt-0.5">
+                권한: {userRole === "OWNER" ? "조장" : userRole === "MEMBER" ? "조원" : "구경꾼"}
+              </div>
+            </div>
+          </div>
           <LogoutButton />
         </div>
       </header>

@@ -92,7 +92,7 @@ export async function POST(req: Request) {
   }
 }
 
-// PATCH: 기존 승인 회원의 역할(role)을 변경합니다.
+// PATCH: 기존 승인 회원의 권한(role) 또는 실명/역할(name)을 변경합니다.
 export async function PATCH(req: Request) {
   try {
     const session = await verifyAdmin();
@@ -101,30 +101,39 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { userId, role } = body;
+    const { userId, role, name } = body;
 
-    if (!userId || !role) {
-      return NextResponse.json({ error: "유저 ID와 변경할 역할이 필요합니다." }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: "유저 ID가 누락되었습니다." }, { status: 400 });
     }
 
-    // 허용 가능한 역할 값만 처리
-    const allowedRoles = ["OWNER", "MEMBER", "VIEWER"];
-    if (!allowedRoles.includes(role)) {
-      return NextResponse.json({ error: "유효하지 않은 역할 값입니다." }, { status: 400 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {};
+
+    if (role !== undefined) {
+      const allowedRoles = ["OWNER", "MEMBER", "VIEWER"];
+      if (!allowedRoles.includes(role)) {
+        return NextResponse.json({ error: "유효하지 않은 역할 값입니다." }, { status: 400 });
+      }
+      updateData.role = role;
+    }
+
+    if (name !== undefined) {
+      updateData.name = name;
     }
 
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data: { role },
+      data: updateData,
     });
 
     return NextResponse.json({
-      message: `'${updatedUser.name}'의 역할이 '${role}'로 변경되었습니다.`,
-      user: { id: updatedUser.id, role: updatedUser.role },
+      message: `'${updatedUser.name}'의 정보가 성공적으로 변경되었습니다.`,
+      user: { id: updatedUser.id, role: updatedUser.role, name: updatedUser.name },
     });
   } catch (e) {
     console.error("PATCH /api/admin 에러:", e);
-    return NextResponse.json({ error: "역할 변경 중 서버 오류 발생" }, { status: 500 });
+    return NextResponse.json({ error: "회원 정보 변경 중 서버 오류 발생" }, { status: 500 });
   }
 }
 

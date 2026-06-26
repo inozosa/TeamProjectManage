@@ -39,6 +39,43 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null); // 역할 변경 드롭다운 열린 유저 ID
 
+  // 신규: 각 유저별 입력한 역할 정보 임시 보관 상태
+  const [editingRoleDetails, setEditingRoleDetails] = useState<Record<string, string>>({});
+
+  // 실명과 역할을 괄호 기준으로 파싱하는 헬퍼
+  const parseName = (fullName: string | null) => {
+    if (!fullName) return { nameOnly: "이름 없음", roleDetail: "" };
+    const match = fullName.match(/^(.*?)\s*\((.*?)\)$/);
+    if (match) {
+      return { nameOnly: match[1].trim(), roleDetail: match[2].trim() };
+    }
+    return { nameOnly: fullName.trim(), roleDetail: "" };
+  };
+
+  // 신규: 담당 역할 변경 처리 함수
+  const handleRoleDetailChange = async (userId: string, nameOnly: string, newRoleDetail: string) => {
+    const trimmed = newRoleDetail.trim();
+    const newFullName = trimmed ? `${nameOnly} (${trimmed})` : nameOnly;
+    
+    if (!confirm(`회원의 담당 역할을 '${trimmed}'(으)로 변경하시겠습니까?`)) return;
+    
+    try {
+      const res = await fetch("/api/admin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, name: newFullName }),
+      });
+      if (res.ok) {
+        setApprovedUsers(approvedUsers.map((u) => (u.id === userId ? { ...u, name: newFullName } : u)));
+        alert("✅ 담당 역할이 성공적으로 변경되었습니다.");
+      } else {
+        alert("역할 변경에 실패했습니다.");
+      }
+    } catch {
+      alert("서버 연결 실패");
+    }
+  };
+
   // 1. 관리자 권한 검증
   useEffect(() => {
     if (sessionStatus === "unauthenticated") {
@@ -186,7 +223,25 @@ export default function AdminPage() {
             <Link href="/admin" className="text-sky-600 font-bold">회원 관리</Link>
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
+          {session?.user && (
+            <div className="flex items-center gap-2.5">
+              {session.user.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.image}
+                  alt="User Profile"
+                  className="w-8 h-8 rounded-full border border-slate-200 bg-slate-100"
+                />
+              )}
+              <div className="text-left hidden sm:block">
+                <div className="text-sm font-extrabold text-slate-800">{session.user.name}</div>
+                <div className="text-xs text-sky-600 font-bold mt-0.5">
+                  권한: {session.user.role === "OWNER" ? "조장" : session.user.role === "MEMBER" ? "조원" : "구경꾼"}
+                </div>
+              </div>
+            </div>
+          )}
           <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2.5 py-1 rounded border border-sky-200">
             👑 시스템 관리자 모드
           </span>
@@ -333,84 +388,110 @@ export default function AdminPage() {
                     <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold">
                       <th className="p-4">가입일</th>
                       <th className="p-4">아이디</th>
-                      <th className="p-4">이름</th>
+                      <th className="p-4">이름 (역할)</th>
                       <th className="p-4">이메일</th>
-                      <th className="p-4">현재 역할</th>
+                      <th className="p-4">현재 권한</th>
+                      <th className="p-4 text-center">권한 변경</th>
                       <th className="p-4 text-center">역할 변경</th>
                       <th className="p-4 text-center">강제 탈퇴</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {approvedUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-50/70 transition duration-100">
-                        <td className="p-4 text-slate-400 font-mono">
-                          {new Date(user.createdAt).toLocaleDateString("ko-KR", {
-                            year: "numeric", month: "2-digit", day: "2-digit",
-                          })}
-                        </td>
-                        <td className="p-4 font-bold text-slate-800">{user.loginId}</td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            {/* 아바타 */}
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 overflow-hidden shrink-0 flex items-center justify-center text-white font-bold text-[10px]">
-                              {user.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={user.image} alt={user.name || ""} className="w-full h-full object-cover" />
-                              ) : (
-                                user.name?.charAt(0) || "?"
-                              )}
+                    {approvedUsers.map((user) => {
+                      const { nameOnly, roleDetail } = parseName(user.name);
+                      return (
+                        <tr key={user.id} className="hover:bg-slate-50/70 transition duration-100">
+                          <td className="p-4 text-slate-400 font-mono">
+                            {new Date(user.createdAt).toLocaleDateString("ko-KR", {
+                              year: "numeric", month: "2-digit", day: "2-digit",
+                            })}
+                          </td>
+                          <td className="p-4 font-bold text-slate-800">{user.loginId}</td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              {/* 아바타 */}
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 overflow-hidden shrink-0 flex items-center justify-center text-white font-bold text-[10px]">
+                                {user.image ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={user.image} alt={user.name || ""} className="w-full h-full object-cover" />
+                                ) : (
+                                  nameOnly.charAt(0) || "?"
+                                )}
+                              </div>
+                              <span className="font-medium text-slate-800">
+                                {nameOnly}
+                                {roleDetail && <span className="text-slate-400 text-[10px] ml-1">({roleDetail})</span>}
+                              </span>
                             </div>
-                            <span>{user.name || "이름 없음"}</span>
-                          </div>
-                        </td>
-                        <td className="p-4 font-mono text-slate-500">{user.email || "-"}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${ROLE_MAP[user.role]?.color || ""}`}>
-                            {ROLE_MAP[user.role]?.label || user.role}
-                          </span>
-                        </td>
+                          </td>
+                          <td className="p-4 font-mono text-slate-500">{user.email || "-"}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${ROLE_MAP[user.role]?.color || ""}`}>
+                              {ROLE_MAP[user.role]?.label || user.role}
+                            </span>
+                          </td>
 
-                        {/* 역할 변경 드롭다운 */}
-                        <td className="p-4 text-center">
-                          {editingRoleId === user.id ? (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <select
-                                defaultValue={user.role}
-                                onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)}
-                                className="text-[10px] border border-sky-300 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:border-sky-500 cursor-pointer"
-                              >
-                                <option value="OWNER">조장</option>
-                                <option value="MEMBER">조원</option>
-                                <option value="VIEWER">구경꾼(멘토)</option>
-                              </select>
+                          {/* 권한 변경 드롭다운 */}
+                          <td className="p-4 text-center">
+                            {editingRoleId === user.id ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                <select
+                                  defaultValue={user.role}
+                                  onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)}
+                                  className="text-[10px] border border-sky-300 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:border-sky-500 cursor-pointer"
+                                >
+                                  <option value="OWNER">조장</option>
+                                  <option value="MEMBER">조원</option>
+                                  <option value="VIEWER">구경꾼(멘토)</option>
+                                </select>
+                                <button
+                                  onClick={() => setEditingRoleId(null)}
+                                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
                               <button
-                                onClick={() => setEditingRoleId(null)}
-                                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                onClick={() => setEditingRoleId(user.id)}
+                                className="py-1.5 px-3 bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-sky-700 border border-slate-200 hover:border-sky-300 font-bold rounded-lg transition text-[10px]"
                               >
-                                ✕
+                                🔑 권한 변경
+                              </button>
+                            )}
+                          </td>
+
+                          {/* 역할 변경 텍스트 필드 */}
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <input
+                                type="text"
+                                placeholder="역할 예: FE 개발"
+                                value={editingRoleDetails[user.id] !== undefined ? editingRoleDetails[user.id] : roleDetail}
+                                onChange={(e) => setEditingRoleDetails({ ...editingRoleDetails, [user.id]: e.target.value })}
+                                className="text-[10px] w-28 border border-slate-200 rounded-lg px-2.5 py-1 bg-white text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                              />
+                              <button
+                                onClick={() => handleRoleDetailChange(user.id, nameOnly, editingRoleDetails[user.id] !== undefined ? editingRoleDetails[user.id] : roleDetail)}
+                                className="py-1 px-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition text-[10px] shadow-sm shrink-0"
+                              >
+                                변경
                               </button>
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => setEditingRoleId(user.id)}
-                              className="py-1.5 px-3 bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-sky-700 border border-slate-200 hover:border-sky-300 font-bold rounded-lg transition text-[10px]"
-                            >
-                              ✏️ 역할 변경
-                            </button>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* 강제 탈퇴 버튼 */}
-                        <td className="p-4 text-center">
-                          <button
-                            onClick={() => handleDeleteMember(user.id, user.name)}
-                            className="py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-400 font-bold rounded-lg transition text-[10px]"
-                          >
-                            🗑️ 탈퇴
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          {/* 강제 탈퇴 버튼 */}
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleDeleteMember(user.id, user.name)}
+                              className="py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-400 font-bold rounded-lg transition text-[10px]"
+                            >
+                              🗑️ 탈퇴
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

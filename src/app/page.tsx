@@ -95,13 +95,13 @@ export default async function DashboardPage() {
               />
             )}
             <div className="text-left hidden sm:block">
-              <div className="text-xs font-bold text-slate-800">{session.user.name}</div>
-              <div className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">
-                {session.user.role === "OWNER"
-                  ? "👑 조장(Owner)"
+              <div className="text-sm font-extrabold text-slate-800">{session.user.name}</div>
+              <div className="text-xs text-sky-600 font-bold mt-0.5">
+                권한: {session.user.role === "OWNER"
+                  ? "조장"
                   : session.user.role === "MEMBER"
-                  ? "💻 조원(Member)"
-                  : "👀 구경꾼(Viewer)"}
+                  ? "조원"
+                  : "구경꾼"}
               </div>
             </div>
           </div>
