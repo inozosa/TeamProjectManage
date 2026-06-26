@@ -1,8 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { GithubSimulator } from "@/components/github-simulator";
@@ -61,8 +61,22 @@ interface Card {
 }
 
 export default function KanbanPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center flex-col gap-3">
+        <div className="w-8 h-8 border-4 border-sky-600 border-t-transparent animate-spin rounded-full"></div>
+        <div className="text-xs text-slate-500">화면을 준비하는 중입니다...</div>
+      </div>
+    }>
+      <KanbanBoardContent />
+    </Suspense>
+  );
+}
+
+function KanbanBoardContent() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // 데이터베이스 수집 상태 목록
   const [cards, setCards] = useState<Card[]>([]);
@@ -124,6 +138,19 @@ export default function KanbanPage() {
       fetchData();
     }
   }, [sessionStatus]);
+
+  // 2.5. URL 쿼리 파라미터 blockerId 감지 시 해당하는 카드 모달 자동 오픈
+  useEffect(() => {
+    if (cards.length > 0) {
+      const blockerId = searchParams.get("blockerId");
+      if (blockerId) {
+        const targetCard = cards.find((c) => c.id === blockerId);
+        if (targetCard) {
+          handleCardClick(targetCard);
+        }
+      }
+    }
+  }, [cards, searchParams]);
 
   // 3. 카드 클릭 시 상세 모달 오픈 및 댓글 로드
   const handleCardClick = async (card: Card) => {
@@ -263,6 +290,30 @@ export default function KanbanPage() {
       }
     } catch (e) {
       alert("서버 연동 실패");
+    }
+  };
+
+  // 8.5. 카드 영구 삭제 처리 (조장, 조원 전용)
+  const handleDeleteCard = async () => {
+    if (!selectedCard) return;
+    if (!confirm("정말 이 카드를 영구 삭제하시겠습니까?\n(등록된 댓글도 연쇄적으로 영구 삭제됩니다)")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/cards/${selectedCard.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setSelectedCard(null);
+        fetchData();
+        alert("카드가 삭제되었습니다.");
+      } else {
+        alert("카드 삭제에 실패했습니다.");
+      }
+    } catch (e) {
+      alert("서버 통신 실패");
     }
   };
 
@@ -701,12 +752,19 @@ export default function KanbanPage() {
                 </div>
               </div>
 
-              {/* 조장/조원 수정 버튼 */}
+              {/* 조장/조원 수정 및 삭제 버튼 */}
               {userRole !== "VIEWER" && (
-                <div className="pt-2 flex justify-end gap-2">
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDeleteCard}
+                    className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-4 py-2 rounded-xl transition shrink-0"
+                  >
+                    🗑️ 삭제
+                  </button>
                   <button
                     onClick={handleUpdateCardDetails}
-                    className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition"
+                    className="flex-1 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition"
                   >
                     카드 세부 설정 저장
                   </button>

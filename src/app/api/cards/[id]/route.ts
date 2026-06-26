@@ -58,6 +58,34 @@ export async function PUT(
           cardId: id,
         },
       });
+
+      // 만약 새로운 상태가 DONE이고 마일스톤에 연계되어 있다면, 해당 마일스톤의 완수율 검증
+      if (status === "DONE" && updatedCard.milestoneId) {
+        const mId = updatedCard.milestoneId;
+        const allMilestoneCards = await db.card.findMany({
+          where: { milestoneId: mId },
+        });
+
+        const totalCount = allMilestoneCards.length;
+        const doneCount = allMilestoneCards.filter((c) => c.status === "DONE").length;
+
+        // 이 카드가 DONE 처리되면서 해당 마일스톤 아래의 모든 카드들이 완료(100%)되었는지 확인
+        if (totalCount > 0 && doneCount === totalCount) {
+          const milestone = await db.milestone.findUnique({
+            where: { id: mId },
+          });
+
+          if (milestone) {
+            // 전역 알림/공지사항 테이블에 시스템 명의의 축하 공지 브리핑 자동 기재
+            await db.notification.create({
+              data: {
+                title: `🎉 목표 완수 브리핑: [${milestone.title}] 마일스톤 달성 완료!`,
+                content: `조원들이 힘을 합쳐 목표 마일스톤 **"${milestone.title}"**의 모든 태스크 카드(${totalCount}개)를 100% 완수했습니다! 조원 여러분 모두 대단히 고생하셨습니다. 🚀`,
+              },
+            });
+          }
+        }
+      }
     }
 
     // B. 에러가 나서 블로커(진행 방해 경보)를 켜거나 끈 경우
@@ -90,3 +118,39 @@ export async function PUT(
     return NextResponse.json({ error: "카드 수정 과정에서 서버 예외 에러가 발생했습니다." }, { status: 500 });
   }
 }
+
+// DELETE: 특정 카드를 영구 삭제합니다. (Cascade 관계 제약에 의해 카드 댓글은 함께 자동 삭제됨)
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // 1. 로그인 유무 및 권한 검증
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role === "VIEWER") {
+      return NextResponse.json({ error: "삭제 권한이 없습니다. (구경꾼 권한 제한)" }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    // 2. 삭제할 카드 존재 여부 확인
+    const existingCard = await db.card.findUnique({
+      where: { id },
+    });
+
+    if (!existingCard) {
+      return NextResponse.json({ error: "삭제할 카드를 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    // 3. 카드 영구 삭제 처리
+    await db.card.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("DELETE /api/cards/[id] 에러:", e);
+    return NextResponse.json({ error: "카드 삭제 과정에서 서버 내부 오류가 발생했습니다." }, { status: 500 });
+  }
+}
+

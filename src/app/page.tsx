@@ -135,7 +135,7 @@ export default async function DashboardPage() {
           </div>
           {/* 입체감 있는 3D 스타일의 경고 트러블슈팅 버튼 컴포넌트 */}
           <Link
-            href="/kanban"
+            href={`/kanban?blockerId=${blockerCards[0].id}`}
             className="text-xs bg-red-600 hover:bg-red-500 border border-red-700 text-white font-bold px-4 py-2.5 rounded-xl transition-all duration-75 shadow-[0_3px_0_0_#991b1b] hover:shadow-[0_2px_0_0_#991b1b] active:shadow-none hover:translate-y-[1px] active:translate-y-[3px]"
           >
             트러블슈팅하러 가기 &rarr;

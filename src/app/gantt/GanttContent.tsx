@@ -547,6 +547,7 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full px-3 py-2 border border-slate-350 rounded-lg text-slate-800 bg-white focus:outline-hidden focus:border-sky-500"
                   required
                 />
