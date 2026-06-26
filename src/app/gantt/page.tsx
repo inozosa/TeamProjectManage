@@ -24,27 +24,32 @@ export default async function GanttChartPage() {
 
   // 3. 타임라인 전체 시작점과 끝점 계산 (Gantt Chart의 가로 범위)
   const now = new Date();
-  let minStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 기본값: 오늘 기준 7일 전
-  let maxEnd = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000); // 기본값: 오늘 기준 21일 후
+  
+  // 시작 지점은 항상 오늘 날짜의 00:00:00으로 설정하여 오늘 날짜가 시작점이 되도록 합니다.
+  const minStart = new Date(now);
+  minStart.setHours(0, 0, 0, 0);
+
+  // 기본 마감 지점은 오늘 기준 21일 후로 설정
+  let maxEnd = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
 
   if (milestones.length > 0) {
-    // 모든 마일스톤의 생성일(createdAt) 중 가장 이른 시간 추출
-    const starts = milestones.map((m) => new Date(m.createdAt).getTime());
     // 모든 마일스톤의 목표 마감일(dueDate) 중 가장 늦은 시간 추출
     const ends = milestones.map((m) => new Date(m.dueDate).getTime());
-
-    const actualMin = Math.min(...starts);
     const actualMax = Math.max(...ends);
 
-    // 차트에 너무 빡빡하게 붙는 걸 방지하여 앞뒤로 3일씩 버퍼를 둡니다.
-    minStart = new Date(actualMin - 3 * 24 * 60 * 60 * 1000);
-    maxEnd = new Date(actualMax + 3 * 24 * 60 * 60 * 1000);
+    // 차트에 너무 빡빡하게 붙는 걸 방지하여 뒤로 3일의 버퍼를 둡니다.
+    const calculatedMaxEnd = new Date(actualMax + 3 * 24 * 60 * 60 * 1000);
+    
+    // 계산된 마감일이 기본 설정값보다 더 뒤라면 해당 날짜를 마감일로 사용합니다.
+    if (calculatedMaxEnd.getTime() > maxEnd.getTime()) {
+      maxEnd = calculatedMaxEnd;
+    }
   }
 
   // 타임라인의 전체 시간적 길이 (밀리초 단위)
   const totalDuration = maxEnd.getTime() - minStart.getTime();
 
-  // 4. 타임라인 상단 날짜 눈금 그리드 데이터 생성 (3일 혹은 7일 간격 눈금)
+  // 4. 타임라인 상단 날짜 눈금 그리드 데이터 생성 (7일 간격 눈금)
   const gridTicks: { date: Date; leftPercent: number; label: string }[] = [];
   const startDay = new Date(minStart);
   startDay.setHours(0, 0, 0, 0);
@@ -156,7 +161,7 @@ export default async function GanttChartPage() {
               
               {/* 타임라인 헤더 (날짜 눈금 배치) */}
               <div className="bg-slate-50 border-b border-slate-200 h-10 relative flex items-center">
-                <div className="w-1/4 min-w-[180px] border-r border-slate-200 px-4 text-xs font-bold text-slate-500">
+                <div className="w-1/4 min-w-[180px] border-r border-slate-200 px-4 text-xs font-bold text-slate-500 relative z-25 bg-slate-50">
                   목표 마일스톤 명칭
                 </div>
                 <div className="flex-1 relative h-full">
@@ -173,84 +178,41 @@ export default async function GanttChartPage() {
                 </div>
               </div>
 
-              {/* 간트차트 타임라인 리스트 그리드 */}
-              <div className="relative divide-y divide-slate-150">
+              {/* 간트차트 타임라인 리스트 그리드 본체 (왼쪽 라벨과 오른쪽 차트를 분할하여 텍스트 침범 원천 방어) */}
+              <div className="flex relative bg-white">
                 
-                {/* 실시간 오늘 세로 가이드라인 (Today Line) 장착 */}
-                {isTodayVisible && (
-                  <div
-                    className="absolute top-0 bottom-0 border-l-2 border-dashed border-red-500 z-10 flex flex-col items-center pointer-events-none"
-                    style={{ left: `${todayLeft}%` }}
-                  >
-                    <span className="bg-red-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow -translate-x-1/2 -translate-y-2.5 whitespace-nowrap">
-                      오늘 (TODAY)
-                    </span>
-                  </div>
-                )}
+                {/* 1. 왼쪽 고정 명칭 컬럼 */}
+                <div className="w-1/4 min-w-[180px] border-r border-slate-200 divide-y divide-slate-200 shrink-0 bg-white relative z-20">
+                  {milestones.map((ms) => {
+                    const msCards = ms.cards;
+                    const totalCount = msCards.length;
+                    const doneCount = msCards.filter((c) => c.status === "DONE").length;
+                    const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                    const mStart = new Date(ms.createdAt).getTime();
+                    const mEnd = new Date(ms.dueDate).getTime();
 
-                {/* 각 마일스톤 행(Row) 생성 */}
-                {milestones.map((ms) => {
-                  const msCards = ms.cards;
-                  const totalCount = msCards.length;
-                  const doneCount = msCards.filter((c) => c.status === "DONE").length;
-                  
-                  // 진척율 퍼센트
-                  const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-
-                  // 마일스톤 시작 시각과 종료 시각
-                  const mStart = new Date(ms.createdAt).getTime();
-                  const mEnd = new Date(ms.dueDate).getTime();
-                  const mDuration = mEnd - mStart;
-
-                  // 타임라인 상의 가로 영역 비율(%) 연산
-                  let leftRatio = ((mStart - minStart.getTime()) / totalDuration) * 100;
-                  let widthRatio = (mDuration / totalDuration) * 100;
-
-                  // 그래프 삐져나옴 방어 처리
-                  if (leftRatio < 0) {
-                    widthRatio += leftRatio;
-                    leftRatio = 0;
-                  }
-                  if (leftRatio + widthRatio > 100) {
-                    widthRatio = 100 - leftRatio;
-                  }
-                  if (widthRatio < 2) {
-                    widthRatio = 2; // 최소 너비 확보
-                  }
-
-                  // ⏳ 진행 상황 정밀 판독 (시간 대비 완료율 대조)
-                  let statusBadge = { text: "💻 진행 중", style: "bg-sky-50 text-sky-600 border-sky-200" };
-
-                  if (todayTime < mStart) {
-                    // 1. 아직 시작일도 도달하지 않은 대기 마일스톤
-                    statusBadge = { text: "⏳ 대기 중", style: "bg-slate-100 text-slate-500 border-slate-200" };
-                  } else if (progress === 100) {
-                    // 2. 100% 완료 상태
-                    statusBadge = { text: "✅ 완료", style: "bg-emerald-50 text-emerald-600 border-emerald-250" };
-                  } else if (todayTime > mEnd) {
-                    // 3. 기한은 지났는데 아직 미완료인 경우
-                    statusBadge = { text: "🚨 기한 초과", style: "bg-red-50 text-red-600 border-red-200 font-bold" };
-                  } else {
-                    // 4. 기간 도중에 진행 중인 상황
-                    const timeElapsed = todayTime - mStart;
-                    const timeProgressRatio = (timeElapsed / mDuration) * 100;
-                    
-                    // 오늘 흘러간 시간의 퍼센트보다 개발 진척율이 15% 이상 뒤쳐질 때 지연 경고 작동
-                    if (progress < timeProgressRatio - 15) {
-                      statusBadge = { text: "⚠️ 지연 위험", style: "bg-amber-50 text-amber-600 border-amber-200 animate-pulse font-semibold" };
+                    // 진행 상태 배지 식별
+                    let statusBadge = { text: "💻 진행 중", style: "bg-sky-50 text-sky-600 border-sky-200" };
+                    if (todayTime < mStart) {
+                      statusBadge = { text: "⏳ 대기 중", style: "bg-slate-100 text-slate-500 border-slate-200" };
+                    } else if (progress === 100) {
+                      statusBadge = { text: "✅ 완료", style: "bg-emerald-50 text-emerald-600 border-emerald-250" };
+                    } else if (todayTime > mEnd) {
+                      statusBadge = { text: "🚨 기한 초과", style: "bg-red-50 text-red-600 border-red-200 font-bold" };
+                    } else {
+                      const timeElapsed = todayTime - mStart;
+                      const timeProgressRatio = (timeElapsed / (mEnd - mStart)) * 100;
+                      if (progress < timeProgressRatio - 15) {
+                        statusBadge = { text: "⚠️ 지연 위험", style: "bg-amber-50 text-amber-600 border-amber-200 animate-pulse font-semibold" };
+                      }
                     }
-                  }
 
-                  return (
-                    <div key={ms.id} className="min-h-[72px] flex items-center hover:bg-slate-50/50 transition">
-                      
-                      {/* 왼쪽: 마일스톤 요약 정보 */}
-                      <div className="w-1/4 min-w-[180px] border-r border-slate-200 p-4 space-y-1.5 shrink-0">
+                    return (
+                      <div key={ms.id} className="h-[72px] p-4 flex flex-col justify-center space-y-1.5 bg-white select-none">
                         <div className="text-xs font-bold text-slate-800 truncate" title={ms.title}>
                           {ms.title}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          {/* 상태 판독 배지 렌더링 */}
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-md border font-medium whitespace-nowrap ${statusBadge.style}`}>
                             {statusBadge.text}
                           </span>
@@ -262,9 +224,50 @@ export default async function GanttChartPage() {
                           기한: {new Date(ms.dueDate).toLocaleDateString("ko-KR")}
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* 오른쪽: 타임라인 막대 바 렌더링 공간 */}
-                      <div className="flex-1 h-full relative p-4 flex items-center">
+                {/* 2. 오른쪽 타임라인 막대 컬럼 (오늘선 및 날짜 눈금과 100% 동기화) */}
+                <div className="flex-1 relative divide-y divide-slate-200 bg-white">
+                  
+                  {/* 실시간 오늘 세로 가이드라인 (Today Line) 장착 - 오직 우측 차트 스펙에만 정렬됨 */}
+                  {isTodayVisible && (
+                    <div
+                      className="absolute top-0 bottom-0 border-l-2 border-dashed border-red-500 z-10 flex flex-col items-center pointer-events-none"
+                      style={{ left: `${todayLeft}%` }}
+                    >
+                      <span className="bg-red-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow -translate-x-1/2 -translate-y-2.5 whitespace-nowrap">
+                        오늘 (TODAY)
+                      </span>
+                    </div>
+                  )}
+
+                  {milestones.map((ms) => {
+                    const msCards = ms.cards;
+                    const totalCount = msCards.length;
+                    const doneCount = msCards.filter((c) => c.status === "DONE").length;
+                    const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                    const mStart = new Date(ms.createdAt).getTime();
+                    const mEnd = new Date(ms.dueDate).getTime();
+                    const mDuration = mEnd - mStart;
+
+                    let leftRatio = ((mStart - minStart.getTime()) / totalDuration) * 100;
+                    let widthRatio = (mDuration / totalDuration) * 100;
+
+                    if (leftRatio < 0) {
+                      widthRatio += leftRatio;
+                      leftRatio = 0;
+                    }
+                    if (leftRatio + widthRatio > 100) {
+                      widthRatio = 100 - leftRatio;
+                    }
+                    if (widthRatio < 2) {
+                      widthRatio = 2;
+                    }
+
+                    return (
+                      <div key={ms.id} className="h-[72px] relative flex items-center px-4 hover:bg-slate-50/50 transition">
                         
                         {/* 세로 눈금 점선 가이드 */}
                         {gridTicks.map((tick, tIdx) => (
@@ -277,28 +280,28 @@ export default async function GanttChartPage() {
 
                         {/* 간트 차트 실시간 진행 막대(Bar) */}
                         <div
-                          className="absolute h-6 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex shadow-sm group hover:border-slate-400 transition"
+                          className="absolute h-6 rounded-lg bg-slate-150 border border-slate-200 overflow-hidden flex shadow-sm group hover:border-slate-400 transition"
                           style={{
                             left: `${leftRatio}%`,
                             width: `${widthRatio}%`,
                           }}
                         >
-                          {/* 완료된 진척도만큼 그라데이션 게이지로 채웁니다 */}
                           <div
                             className="bg-gradient-to-r from-sky-400 to-emerald-400 h-full transition-all duration-300"
                             style={{ width: `${progress}%` }}
                           ></div>
 
-                          {/* 호버 시 전체 일정 및 진척도를 나타내는 툴팁 */}
+                          {/* 호버 시 툴팁 */}
                           <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block z-30 bg-slate-900 text-white text-[9px] rounded px-2 py-1 whitespace-nowrap shadow-lg">
                             달성량: {progress}% ({doneCount}/{totalCount} 완료)
                           </div>
                         </div>
 
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+
               </div>
 
             </div>
