@@ -86,6 +86,9 @@ function KanbanBoardContent() {
   // UI 필터 및 로딩 상태
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL"); // ALL, PLANNING, DESIGN, FRONTEND, BACKEND
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // 모바일 화면 전용 상태 전환 탭 (TODO, IN_PROGRESS, DONE 중 택일)
+  const [activeMobileTab, setActiveMobileTab] = useState<"TODO" | "IN_PROGRESS" | "DONE">("TODO");
 
   // 모달 제어 상태
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
@@ -421,6 +424,30 @@ function KanbanBoardContent() {
         )}
       </div>
 
+      {/* 모바일 화면 전용 상태 전환 탭 바 (md 미만 노출) */}
+      <div className="md:hidden max-w-7xl w-full mx-auto px-6 mb-2">
+        <div className="flex border border-slate-200 bg-white rounded-xl p-1 shadow-sm gap-1">
+          {["TODO", "IN_PROGRESS", "DONE"].map((status) => {
+            const count = filteredCards.filter((c) => c.status === status).length;
+            const isTabActive = activeMobileTab === status;
+            return (
+              <button
+                key={status}
+                onClick={() => setActiveMobileTab(status as any)}
+                className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all ${
+                  isTabActive
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                {status === "TODO" ? "📋 " : status === "IN_PROGRESS" ? "⚡ " : "✅ "}
+                {STATUS_MAP[status]} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 칸반 보드 메인 판넬 (3개의 상태 열) */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         {["TODO", "IN_PROGRESS", "DONE"].map((colStatus) => {
@@ -431,7 +458,9 @@ function KanbanBoardContent() {
               key={colStatus}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, colStatus)}
-              className="flex flex-col bg-slate-100/60 rounded-2xl border border-slate-200 p-4 min-h-[500px]"
+              className={`flex-col bg-slate-100/60 rounded-2xl border border-slate-200 p-4 min-h-[500px] ${
+                activeMobileTab === colStatus ? "flex" : "hidden md:flex"
+              }`}
             >
               {/* 컬럼 타이틀 */}
               <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">

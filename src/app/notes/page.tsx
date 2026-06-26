@@ -66,6 +66,9 @@ export default function MeetingNotesPage() {
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiSummary, setAiSummary] = useState<string>("");
   const [aiActionItems, setAiActionItems] = useState<{ title: string; category: string; content: string }[]>([]);
+  
+  // 모바일 화면용 회의록 리스트 펼침 여부 상태
+  const [isListExpanded, setIsListExpanded] = useState<boolean>(false);
 
   // 1. 비로그인 유저 리다이렉트
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function MeetingNotesPage() {
       setEditTitle(selectedNote.title);
       setEditContent(selectedNote.content);
       setIsEditing(false);
+      setIsListExpanded(false); // 회의록을 선택하면 리스트를 닫아 본문에 집중하게 함
     }
   }, [selectedNote]);
 
@@ -336,8 +340,8 @@ export default function MeetingNotesPage() {
       {/* 메인 이단 분할 화면 레이아웃 (왼쪽: 리스트, 오른쪽: 상세 보기) */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col md:flex-row gap-6 overflow-hidden">
         
-        {/* 1. 왼쪽 패널: 회의록 목록 사이드바 */}
-        <section className="w-full md:w-80 shrink-0 flex flex-col bg-white border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm">
+        {/* 1. 왼쪽 패널: 회의록 목록 사이드바 (모바일에서는 선택 안 됐거나 목록 토글이 켜진 경우에만 노출) */}
+        <section className={`w-full md:w-80 shrink-0 flex flex-col bg-white border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm ${(!selectedNote || isListExpanded) ? "flex" : "hidden md:flex"}`}>
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
             <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
               <span>📝</span> 조원 회의록 리스트
@@ -388,8 +392,24 @@ export default function MeetingNotesPage() {
           </div>
         </section>
 
-        {/* 2. 오른쪽 패널: 회의록 본문 상세 내용 및 즉석 카드 발급 */}
-        <section className="flex-1 flex flex-col bg-white border border-slate-200 rounded-2xl p-6 overflow-y-auto shadow-sm">
+        {/* 2. 오른쪽 패널: 회의록 본문 상세 내용 및 즉석 카드 발급 (선택된 카드가 없을 땐 모바일에서 숨김) */}
+        <section className={`flex-1 flex flex-col bg-white border border-slate-200 rounded-2xl p-6 overflow-y-auto shadow-sm ${selectedNote ? "flex" : "hidden md:flex"}`}>
+          {/* 모바일 화면용 회의록 목록 열기/접기 아코디언 버튼 (md 미만 노출) */}
+          <div className="md:hidden mb-4 shrink-0">
+            <button
+              onClick={() => setIsListExpanded(!isListExpanded)}
+              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 text-xs font-bold rounded-xl flex items-center justify-between transition-all"
+            >
+              <span className="flex items-center gap-1.5">
+                <span>📁</span>
+                {isListExpanded ? "회의록 목록 접기" : "다른 회의록 목록 보기"}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {isListExpanded ? "▲" : "▼"}
+              </span>
+            </button>
+          </div>
+
           {selectedNote ? (
             isEditing ? (
               // 회의록 편집 모드 (인라인 에디터)

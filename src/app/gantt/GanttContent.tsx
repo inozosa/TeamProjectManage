@@ -338,8 +338,8 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
             <div className="relative border border-slate-200 rounded-xl overflow-x-auto min-w-[700px]">
               {/* 타임라인 헤더 (날짜 눈금) */}
               <div className="bg-slate-50 border-b border-slate-200 h-12 relative flex items-center">
-                <div className="w-1/4 min-w-[180px] border-r border-slate-200 px-4 text-xs font-bold text-slate-500 relative z-25 bg-slate-50">
-                  목표 마일스톤 명칭 / 관리
+                <div className="w-[130px] md:w-1/4 md:min-w-[180px] border-r border-slate-200 px-2 md:px-4 text-[10px] md:text-xs font-bold text-slate-500 relative z-25 bg-slate-50 truncate">
+                  목표 마일스톤 명칭
                 </div>
                 <div className="flex-1 relative h-full">
                   {gridTicks.map((tick, idx) => (
@@ -356,8 +356,8 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
 
               {/* 간트차트 본체 */}
               <div className="flex relative bg-white">
-                {/* 1. 왼쪽 고정 명칭 및 조작 컬럼 */}
-                <div className="w-1/4 min-w-[180px] border-r border-slate-200 divide-y divide-slate-200 shrink-0 bg-white relative z-20">
+                {/* 1. 왼쪽 고정 명칭 및 조작 컬럼 (모바일에서 좁은 너비 지정) */}
+                <div className="w-[130px] md:w-1/4 md:min-w-[180px] border-r border-slate-200 divide-y divide-slate-200 shrink-0 bg-white relative z-20">
                   {milestones.map((ms) => {
                     const msCards = ms.cards;
                     const totalCount = msCards.length;
@@ -383,9 +383,9 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
                     }
 
                     return (
-                      <div key={ms.id} className="h-[76px] p-3 flex flex-col justify-center bg-white group select-none">
+                      <div key={ms.id} className="h-[76px] p-2 md:p-3 flex flex-col justify-center bg-white group select-none">
                         <div className="flex items-center justify-between gap-1">
-                          <div className="text-xs font-bold text-slate-800 truncate" title={ms.title}>
+                          <div className="text-[10px] md:text-xs font-bold text-slate-800 truncate" title={ms.title}>
                             {ms.title}
                           </div>
                           {/* 조원/조장 권한일 경우 수정/삭제 툴 메뉴 노출 */}
@@ -393,29 +393,29 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
                             <div className="flex items-center gap-1 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => openEditModal(ms)}
-                                className="text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-600 px-1.5 py-0.5 rounded border border-slate-200 transition"
+                                className="text-[9px] md:text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-600 px-1 py-0.5 md:px-1.5 md:py-0.5 rounded border border-slate-200 transition"
                               >
                                 수정
                               </button>
                               <button
                                 onClick={() => handleDelete(ms.id)}
-                                className="text-[10px] bg-slate-100 hover:bg-red-50 hover:text-red-600 px-1.5 py-0.5 rounded border border-slate-200 transition"
+                                className="text-[9px] md:text-[10px] bg-slate-100 hover:bg-red-50 hover:text-red-600 px-1 py-0.5 md:px-1.5 md:py-0.5 rounded border border-slate-200 transition"
                               >
                                 삭제
                               </button>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-md border font-medium whitespace-nowrap ${statusBadge.style}`}>
-                            {statusBadge.text}
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className={`text-[8px] md:text-[9px] px-1.5 py-0.5 rounded-md border font-medium whitespace-nowrap ${statusBadge.style}`}>
+                            {statusBadge.text.replace("💻 ", "").replace("⏳ ", "").replace("✅ ", "").replace("🚨 ", "").replace("⚠️ ", "")}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-bold">
-                            {progress}% ({doneCount}/{totalCount}개)
+                          <span className="text-[9px] md:text-[10px] text-slate-400 font-bold">
+                            {progress}%
                           </span>
                         </div>
-                        <div className="text-[9px] text-slate-400 mt-0.5">
-                          기한: {new Date(ms.dueDate).toLocaleDateString("ko-KR")}
+                        <div className="text-[8px] md:text-[9px] text-slate-400 mt-0.5 truncate">
+                          ~ {new Date(ms.dueDate).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
                         </div>
                       </div>
                     );
