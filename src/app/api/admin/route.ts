@@ -3,25 +3,28 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-// GET: 관리자(admin) 계정 전용으로, 가입 승인을 기다리는 [승인 대기자 목록]을 불러옵니다.
+// 관리자 권한 검증 헬퍼 함수
+async function verifyAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.email !== "admin@weareteam.com") {
+    return null;
+  }
+  return session;
+}
+
+// GET: 관리자 전용 — 승인 대기자 목록 + 전체 승인 회원 목록 함께 반환
 export async function GET() {
   try {
-    // 1. 세션을 가져와 현재 사용자가 관리자인지 확인합니다.
-    const session = await getServerSession(authOptions);
-    
-    // 비로그인이거나 아이디가 'admin'이 아닌 경우 접속을 차단(403 Forbidden)합니다.
-    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
+    const session = await verifyAdmin();
+    if (!session) {
       return NextResponse.json({ error: "관리자만 접근할 수 있는 API입니다." }, { status: 403 });
     }
 
-    // 2. 데이터베이스에서 승인 대기자(isApproved: false) 목록을 가입일 순서(createdAt: asc)로 가져옵니다.
-    // (관리자 계정 본인은 리스트에서 당연히 제외됩니다.)
+    // 승인 대기자 목록 (isApproved: false, 관리자 본인 제외)
     const pendingUsers = await db.user.findMany({
       where: {
         isApproved: false,
-        NOT: {
-          loginId: "admin",
-        },
+        NOT: { loginId: "admin" },
       },
       select: {
         id: true,
@@ -31,28 +34,42 @@ export async function GET() {
         role: true,
         createdAt: true,
       },
-      orderBy: {
-        createdAt: "asc",
-      },
+      orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(pendingUsers);
+    // 승인된 활성 회원 목록 (isApproved: true, 관리자 본인 제외)
+    const approvedUsers = await db.user.findMany({
+      where: {
+        isApproved: true,
+        NOT: { loginId: "admin" }, // 관리자 본인은 리스트에서 제외
+      },
+      select: {
+        id: true,
+        loginId: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        image: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return NextResponse.json({ pendingUsers, approvedUsers });
   } catch (e) {
     console.error("GET /api/admin 에러:", e);
-    return NextResponse.json({ error: "대기 조원 조회 중 서버 오류 발생" }, { status: 500 });
+    return NextResponse.json({ error: "회원 목록 조회 중 서버 오류 발생" }, { status: 500 });
   }
 }
 
 // POST: 특정 대기 조원을 승인 완료(isApproved: true) 처리합니다.
 export async function POST(req: Request) {
   try {
-    // 1. 관리자 권한 검증
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
+    const session = await verifyAdmin();
+    if (!session) {
       return NextResponse.json({ error: "수행 권한이 없습니다." }, { status: 403 });
     }
 
-    // 2. 요청 바디에서 대상 유저 ID 추출
     const body = await req.json();
     const { userId } = body;
 
@@ -60,21 +77,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "승인 처리할 유저 고유 ID가 누락되었습니다." }, { status: 400 });
     }
 
-    // 3. 대상 유저를 찾아 승인 처리(isApproved: true)를 데이터베이스에 반영합니다.
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data: {
-        isApproved: true,
-      },
+      data: { isApproved: true },
     });
 
     return NextResponse.json({
       message: `'${updatedUser.name}' 조원의 가입이 최종 승인되었습니다!`,
-      user: {
-        id: updatedUser.id,
-        loginId: updatedUser.loginId,
-        isApproved: updatedUser.isApproved,
-      },
+      user: { id: updatedUser.id, loginId: updatedUser.loginId, isApproved: updatedUser.isApproved },
     });
   } catch (e) {
     console.error("POST /api/admin 에러:", e);
@@ -82,50 +92,88 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE: 특정 대기 조원의 가입 신청을 거절(데이터베이스에서 삭제) 처리합니다.
-export async function DELETE(req: Request) {
+// PATCH: 기존 승인 회원의 역할(role)을 변경합니다.
+export async function PATCH(req: Request) {
   try {
-    // 1. 관리자 권한 검증
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.email !== "admin@weareteam.com") {
+    const session = await verifyAdmin();
+    if (!session) {
       return NextResponse.json({ error: "수행 권한이 없습니다." }, { status: 403 });
     }
 
-    // 2. 요청 바디에서 거절 대상 유저 ID 추출
+    const body = await req.json();
+    const { userId, role } = body;
+
+    if (!userId || !role) {
+      return NextResponse.json({ error: "유저 ID와 변경할 역할이 필요합니다." }, { status: 400 });
+    }
+
+    // 허용 가능한 역할 값만 처리
+    const allowedRoles = ["OWNER", "MEMBER", "VIEWER"];
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json({ error: "유효하지 않은 역할 값입니다." }, { status: 400 });
+    }
+
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+
+    return NextResponse.json({
+      message: `'${updatedUser.name}'의 역할이 '${role}'로 변경되었습니다.`,
+      user: { id: updatedUser.id, role: updatedUser.role },
+    });
+  } catch (e) {
+    console.error("PATCH /api/admin 에러:", e);
+    return NextResponse.json({ error: "역할 변경 중 서버 오류 발생" }, { status: 500 });
+  }
+}
+
+// DELETE: 가입 신청 거절 또는 기존 회원 강제 탈퇴 처리합니다.
+export async function DELETE(req: Request) {
+  try {
+    const session = await verifyAdmin();
+    if (!session) {
+      return NextResponse.json({ error: "수행 권한이 없습니다." }, { status: 403 });
+    }
+
     const body = await req.json();
     const { userId } = body;
 
     if (!userId) {
-      return NextResponse.json({ error: "거절 처리할 유저 고유 ID가 누락되었습니다." }, { status: 400 });
+      return NextResponse.json({ error: "삭제 처리할 유저 고유 ID가 누락되었습니다." }, { status: 400 });
     }
 
-    // 3. 대상 유저가 데이터베이스에 존재하는지, 그리고 승인 대기 상태인지 조회 및 검증
-    const targetUser = await db.user.findUnique({
-      where: { id: userId },
-    });
+    const targetUser = await db.user.findUnique({ where: { id: userId } });
 
     if (!targetUser) {
-      return NextResponse.json({ error: "존재하지 않는 가입 신청자입니다." }, { status: 404 });
+      return NextResponse.json({ error: "존재하지 않는 사용자입니다." }, { status: 404 });
     }
 
-    if (targetUser.isApproved) {
-      return NextResponse.json(
-        { error: "이미 가입 승인이 완료되어 활동 중인 정식 조원은 거절(삭제)할 수 없습니다." },
-        { status: 400 }
-      );
+    // 관리자 본인 삭제 방어
+    if (targetUser.loginId === "admin") {
+      return NextResponse.json({ error: "관리자 계정은 삭제할 수 없습니다." }, { status: 400 });
     }
 
-    // 4. 데이터베이스에서 완전 삭제(가입 신청 거절 및 정보 파기)
-    await db.user.delete({
-      where: { id: userId },
+    // 해당 유저가 담당자로 지정된 카드들에서 assigneeId를 null로 초기화합니다 (외래키 오류 방지)
+    await db.card.updateMany({
+      where: { assigneeId: userId },
+      data: { assigneeId: null },
     });
 
+    // 해당 유저가 작성한 댓글의 userId를 null로 초기화합니다 (외래키 오류 방지)
+    await db.comment.updateMany({
+      where: { userId: userId },
+      data: { userId: null },
+    });
+
+    // 유저 데이터베이스에서 최종 삭제
+    await db.user.delete({ where: { id: userId } });
+
     return NextResponse.json({
-      message: `'${targetUser.name}' 조원의 가입 신청이 성공적으로 거절 및 파기 처리되었습니다.`,
+      message: `'${targetUser.name}' 계정이 성공적으로 삭제(탈퇴 처리)되었습니다.`,
     });
   } catch (e) {
     console.error("DELETE /api/admin 에러:", e);
-    return NextResponse.json({ error: "조원 거절 처리 중 서버 오류 발생" }, { status: 500 });
+    return NextResponse.json({ error: "회원 삭제 처리 중 서버 오류 발생" }, { status: 500 });
   }
 }
-
