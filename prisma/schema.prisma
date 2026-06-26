@@ -1,0 +1,96 @@
+// Prisma 데이터베이스 설계도 (Schema)
+// 이 파일은 테이블 구조와 테이블 간의 관계를 설정해주는 파일입니다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. 사용자 정보 (아이디/비번 기반 및 승인제 운영)
+model User {
+  id            String    @id @default(cuid())
+  loginId       String    @unique // 로그인 시 사용할 유저 고유 아이디 (추가)
+  password      String    // 해시 암호화된 비밀번호 (추가)
+  name          String?   // 사용자 실명
+  email         String?   @unique // 사용자 이메일
+  image         String?   // 프로필 이미지 URL
+  role          String    @default("MEMBER") // 권한: OWNER (조장/관리자), MEMBER (조원), VIEWER (구경꾼)
+  isApproved    Boolean   @default(false)    // 관리자 가입 승인 여부 (추가, 기본값 미승인)
+  createdAt     DateTime  @default(now()) // 가입 신청일
+  cards         Card[]    @relation("AssignedCards") // 이 사용자가 담당하는 업무 카드들
+  comments      Comment[] // 이 사용자가 작성한 댓글 및 로그
+}
+
+// 2. 마일스톤 (프로젝트의 핵심 목표 일정)
+model Milestone {
+  id          String    @id @default(cuid())
+  title       String    // 목표 이름 (예: "중간 발표", "최종 완성본 제출")
+  description String?   // 상세 설명
+  dueDate     DateTime  // 마감일
+  createdAt   DateTime  @default(now()) // 마일스톤 생성일
+  cards       Card[]    // 이 마일스톤에 엮여 있는 업무 카드들
+}
+
+// 3. 칸반 보드 카드 (개별 업무 카드)
+model Card {
+  id          String    @id @default(cuid())
+  title       String    // 업무 제목
+  content     String?   // 상세 설명
+  status      String    @default("TODO") // 업무 상태: TODO (할 일), IN_PROGRESS (진행 중), DONE (완료)
+  category    String    @default("FRONTEND") // 분야 카테고리: PLANNING (기획), DESIGN (디자인), FRONTEND (프론트엔드), BACKEND (백엔드)
+  isBlocker   Boolean   @default(false) // 블로커(개발 방해 에러 등) 발생 여부 (빨간 불)
+  blockerDesc String?   // 블로커에 대한 에러 메시지나 방해 요인 상세 설명
+  githubIssueNo Int?    // 연결된 깃허브 이슈 번호
+  githubPrUrl   String? // 연결된 깃허브 풀 리퀘스트(PR) 주소
+  dueDate     DateTime? // 카드 개별 마감 기한
+  
+  // 마일스톤 관계 설정
+  milestoneId String?   // 연관된 마일스톤 ID
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  
+  // 담당자 관계 설정
+  assigneeId  String?   // 담당 유저 ID
+  assignee    User?      @relation("AssignedCards", fields: [assigneeId], references: [id])
+  
+  comments    Comment[] // 카드에 달린 피드백 댓글 및 변경 로그들
+  createdAt   DateTime   @default(now()) // 카드 생성일
+  updatedAt   DateTime   @updatedAt // 카드 정보 수정일
+}
+
+// 4. 간편 회의록
+model MeetingNote {
+  id        String   @id @default(cuid())
+  title     String   // 회의 안건 및 주제
+  content   String   // 회의록 전체 내용 (텍스트/마크다운)
+  date      DateTime @default(now()) // 회의 진행일
+  createdAt DateTime @default(now()) // 회의록 작성일
+}
+
+// 5. 카드 내 댓글 및 시스템 동작 기록 로그
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   // 내용 (텍스트)
+  isSystem  Boolean  @default(false) // 시스템 자동 작성 여부 (예: "사용자가 상태를 완료로 변경함", "GitHub 커밋 반영")
+  
+  // 카드 관계 설정
+  cardId    String   // 소속 카드 ID
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  
+  // 작성자 관계 설정 (시스템 메시지일 경우 작성자가 없을 수 있음)
+  userId    String?  // 작성자 유저 ID
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now()) // 작성 시간
+}
+
+// 6. 전체 조원 화면에 보여질 알림/공지사항 테이블
+model Notification {
+  id        String   @id @default(cuid()) // 알림의 고유 식별 번호
+  title     String   // 알림 제목 (예: "6월 26일 오늘의 개발 요약 브리핑")
+  content   String   // 알림 본문 (AI가 요약한 마크다운/텍스트 개발 브리핑)
+  createdAt DateTime @default(now()) // 알림이 발송된 날짜 및 시간
+}
+

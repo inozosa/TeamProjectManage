@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
+/* 
+  DevSync 서비스 전역 스타일시트
+  Linear 감성의 프리미엄 딥 다크 테마를 위해 기본 색상을 변수로 통일합니다.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAFC; /* 밝은 Slate 50 계열 */
+  --foreground: #0F172A; /* 짙은 Slate 900 계열 */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* 기본 body 태그 스타일 마감 */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  /* 페이지 전환 및 상태 변경 시의 스무스한 애니메이션 효과 */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* 1. 모달 팝업 시 부드럽게 나타나게 해주는 큐빅 베지어 페이드인 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.animate-fadeIn {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* 2. 브라우저 기본 스크롤바를 밝은 테마 전용 스크롤바로 디자인 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* 스크롤바가 기어가는 레일(배경) */
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+/* 실제 마우스로 끌고 내리는 손잡이(Thumb) */
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 8px;
+}
+
+/* 손잡이에 마우스를 올렸을 때 살짝 밝아지는 피드백 */
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
