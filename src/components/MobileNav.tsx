@@ -25,8 +25,6 @@ export default function MobileNav() {
 
   // 사용자의 권한이 OWNER(조장)인지 확인합니다.
   const isOwner = session.user.role === "OWNER";
-  // 이메일이 어드민 계정인지 확인합니다.
-  const isAdmin = session.user.email === "admin@weareteam.com";
 
   // 현재 메뉴가 선택되었는지 여부를 확인하는 판별기
   const isActive = (path: string) => {
@@ -93,8 +91,8 @@ export default function MobileNav() {
           <span className="text-[10px]">간트 차트</span>
         </Link>
 
-        {/* 5. 승인 관리 탭 (어드민 계정일 때만 스페셜 노출) */}
-        {isAdmin && (
+        {/* 5. 회원 관리 탭 (어드민 계정일 때만 스페셜 노출) */}
+        {isOwner && (
           <Link
             href="/admin"
             className={`flex flex-col items-center gap-1 transition duration-150 ${
@@ -104,7 +102,7 @@ export default function MobileNav() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span className="text-[10px]">승인 관리</span>
+            <span className="text-[10px]">회원 관리</span>
           </Link>
         )}
       </nav>

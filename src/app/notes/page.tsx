@@ -334,8 +334,8 @@ export default function MeetingNotesPage() {
             <Link href="/kanban" className="hover:text-slate-800 transition">칸반 보드</Link>
             <Link href="/notes" className="text-sky-600 font-bold">회의록</Link>
             <Link href="/gantt" className="hover:text-slate-800 transition">간트 차트</Link>
-            {session?.user.email === "admin@weareteam.com" && (
-              <Link href="/admin" className="hover:text-slate-800 transition">승인 관리</Link>
+            {session?.user.role === "OWNER" && (
+              <Link href="/admin" className="hover:text-slate-800 transition">회원 관리</Link>
             )}
           </nav>
         </div>

@@ -44,7 +44,7 @@ export default function AdminPage() {
     if (sessionStatus === "unauthenticated") {
       router.push("/login");
     } else if (sessionStatus === "authenticated") {
-      if (session.user.email !== "admin@weareteam.com") {
+      if (session.user.role !== "OWNER") {
         alert("접근 권한이 없습니다. 관리자(admin) 계정만 접근 가능합니다.");
         router.push("/");
       } else {

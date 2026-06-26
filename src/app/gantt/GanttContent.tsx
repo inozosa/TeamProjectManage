@@ -263,9 +263,9 @@ export default function GanttContent({ initialMilestones, session }: GanttConten
             <Link href="/gantt" className="text-sky-600 font-bold">
               간트 차트
             </Link>
-            {session.user.email === "admin@weareteam.com" && (
+            {session.user.role === "OWNER" && (
               <Link href="/admin" className="hover:text-slate-800 transition duration-150">
-                승인 관리
+                회원 관리
               </Link>
             )}
           </nav>

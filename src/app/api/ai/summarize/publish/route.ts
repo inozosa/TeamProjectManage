@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     if (
       !session ||
       !session.user ||
-      (session.user.role !== "OWNER" && session.user.email !== "admin@weareteam.com")
+      session.user.role !== "OWNER"
     ) {
       return NextResponse.json(
         { error: "브리핑을 발송할 권한이 없습니다. 조장 계정으로 로그인해 주세요." },

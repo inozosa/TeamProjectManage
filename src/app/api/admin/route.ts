@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 // 관리자 권한 검증 헬퍼 함수
 async function verifyAdmin() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.email !== "admin@weareteam.com") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return null;
   }
   return session;
