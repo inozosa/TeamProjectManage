@@ -296,6 +296,82 @@ function KanbanBoardContent() {
     }
   };
 
+  // 8.1. 간트차트(마일스톤)에 이 카드를 즉시 연결하는 함수 (신규)
+  const handleLinkToGantt = async (milestoneId: string) => {
+    if (!selectedCard) return;
+    if (!milestoneId) {
+      alert("간트차트에 연동할 대상 목표 일정을 선택해 주세요.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/cards/${selectedCard.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: detailTitle.trim(),
+          content: detailContent?.trim() || "",
+          category: detailCategory,
+          assigneeId: detailAssignee || null,
+          milestoneId: milestoneId,
+          isBlocker: detailIsBlocker,
+          blockerDesc: detailIsBlocker ? detailBlockerDesc.trim() : "",
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedCard(updated);
+        setDetailMilestone(milestoneId);
+        fetchData();
+        
+        // 조원이 즉석에서 달력 일정을 보러 갈 수 있도록 워프 제안
+        if (confirm("📅 간트차트 일정표에 추가가 완료되었습니다!\n지금 바로 간트차트 화면으로 이동해 확인할까요?")) {
+          // 모달 상세 창을 닫고 간트 탭으로 고속 워프
+          setSelectedCard(null);
+          router.push("/gantt");
+        }
+      } else {
+        alert("간트차트 연동 등록에 실패했습니다.");
+      }
+    } catch (e) {
+      alert("서버 통신 실패");
+    }
+  };
+
+  // 8.2. 간트차트(마일스톤) 연동을 즉시 끊어버리는 해제 함수 (신규)
+  const handleUnlinkFromGantt = async () => {
+    if (!selectedCard) return;
+
+    try {
+      const res = await fetch(`/api/cards/${selectedCard.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: detailTitle.trim(),
+          content: detailContent?.trim() || "",
+          category: detailCategory,
+          assigneeId: detailAssignee || null,
+          milestoneId: null, // 마일스톤 연결 해제
+          isBlocker: detailIsBlocker,
+          blockerDesc: detailIsBlocker ? detailBlockerDesc.trim() : "",
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedCard(updated);
+        setDetailMilestone("");
+        fetchData();
+        alert("📅 간트차트(마일스톤) 연동 해제가 즉시 완료되었습니다.");
+      } else {
+        alert("연동 해제에 실패했습니다.");
+      }
+    } catch (e) {
+      alert("서버 통신 실패");
+    }
+  };
+
   // 8.5. 카드 영구 삭제 처리 (조장, 조원 전용)
   const handleDeleteCard = async () => {
     if (!selectedCard) return;
@@ -776,6 +852,68 @@ function KanbanBoardContent() {
                         onChange={(e) => setDetailBlockerDesc(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-slate-50 border border-red-350 rounded-xl text-slate-800 disabled:opacity-50 focus:outline-none focus:border-red-500"
                       />
+                    </div>
+                  )}
+                </div>
+
+                {/* 📅 간트차트(일정표)에 작업 추가/연동 제어 패널 (신규 추가) */}
+                <div className="pt-2.5 border-t border-slate-100 space-y-3">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="text-sky-600 text-sm">📅</span> 간트차트 일정표에 추가
+                  </span>
+                  {detailMilestone ? (
+                    // A. 이미 특정 목표 일정(마일스톤)에 카드 정보가 연동 중인 경우
+                    <div className="p-3 bg-sky-50/50 border border-sky-200 rounded-xl flex items-center justify-between gap-3 animate-fadeIn text-[10px]">
+                      <div className="text-slate-600 leading-relaxed truncate">
+                        현재 <strong className="text-sky-700 font-bold">[{milestones.find(m => m.id === detailMilestone)?.title || "연동된 일정"}]</strong>에 지정되어 일정 막대로 표기되고 있습니다.
+                      </div>
+                      {userRole !== "VIEWER" && (
+                        <button
+                          type="button"
+                          onClick={handleUnlinkFromGantt}
+                          className="bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300 font-bold px-2.5 py-1 rounded-lg shrink-0 shadow-sm transition"
+                        >
+                          연동 해제
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    // B. 아직 마일스톤에 연동되지 않아, 간트차트 추가 단축 패널을 보여주는 경우
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 animate-fadeIn">
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        이 태스크를 목표 일정과 연동하여 간트차트 타임라인 화면에 가로 막대로 나타나도록 즉시 등록합니다.
+                      </p>
+                      {milestones.length === 0 ? (
+                        <div className="text-[10px] text-amber-600 italic">
+                          ※ 등록된 마일스톤이 존재하지 않습니다. 먼저 간트 차트 화면에서 목표 일정을 추가해 주세요.
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <select
+                            disabled={userRole === "VIEWER"}
+                            value={detailMilestone}
+                            onChange={(e) => setDetailMilestone(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-[10px] bg-white border border-slate-250 rounded-lg text-slate-800 focus:outline-none"
+                          >
+                            <option value="">대상 일정(마일스톤) 선택...</option>
+                            {milestones.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.title}
+                              </option>
+                            ))}
+                          </select>
+                          {userRole !== "VIEWER" && (
+                            <button
+                              type="button"
+                              onClick={() => handleLinkToGantt(detailMilestone)}
+                              disabled={!detailMilestone}
+                              className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-[10px] px-3.5 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap"
+                            >
+                              간트차트에 등록
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
