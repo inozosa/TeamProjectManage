@@ -242,22 +242,33 @@ export default function MeetingNotesPage() {
     }
   };
 
-  // 3.8. AI가 도출한 할 일을 즉석 카드 폼에 바인딩
-  const handleFillQuickCardForm = (item: { title: string; category: string; content: string }) => {
-    setCardTitle(item.title);
-    setCardContent(item.content);
-    setCardCategory(item.category);
-    
-    // 모달 닫기
-    setIsAiOpen(false);
+  // 3.8. AI가 도출한 할 일을 칸반 보드에 즉시 카드로 등록 처리
+  const handleCreateCardFromAi = async (item: { title: string; category: string; content: string }) => {
+    try {
+      const res = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item.title.trim(),
+          content: item.content.trim() || `[${selectedNote?.title || "회의록"} AI 도출 안건]`,
+          category: item.category,
+          assigneeId: null,
+          milestoneId: null,
+        }),
+      });
 
-    // 즉석 카드 폼 영역으로 포커스 자동 스크롤 이동
-    const formElement = document.getElementById("quick-card-form");
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: "smooth" });
+      if (res.ok) {
+        // 사용자에게 다이렉트 워프(이동) 여부를 묻는 컨펌 창 가동
+        if (confirm("💡 해당 할 일이 칸반 보드에 성공적으로 즉시 등록되었습니다!\n지금 바로 칸반 보드로 이동하여 확인할까요?")) {
+          setIsAiOpen(false); // AI 분석 팝업 닫기
+          router.push("/kanban"); // 칸반 보드 페이지로 고속 이동
+        }
+      } else {
+        alert("할 일을 등록하는 도중 서버 오류가 발생했습니다.");
+      }
+    } catch (e) {
+      alert("네트워크 연결 실패로 카드 등록 실패");
     }
-
-    alert("💡 AI 할 일이 하단 폼에 자동 입력되었습니다! 담당 조원과 목표 마일스톤을 지정한 뒤 [칸반 보드로 즉석 카드 발행]을 클릭해 주세요.");
   };
 
   // 4. 회의 내용 바탕 즉석 카드 발급 처리
@@ -730,10 +741,10 @@ export default function MeetingNotesPage() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleFillQuickCardForm(item)}
+                            onClick={() => handleCreateCardFromAi(item)}
                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg shadow transition"
                           >
-                            입력 폼 복사
+                            칸반에 즉시 등록
                           </button>
                         </div>
                       ))}
